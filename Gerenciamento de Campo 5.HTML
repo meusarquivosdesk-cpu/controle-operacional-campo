@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Controle Operacional de Campo</title>
+  <style>
+    :root {
+      --bg:#0f172a; --panel:#111827; --panel-2:#1f2937; --card:#ffffff;
+      --text:#e5e7eb; --muted:#94a3b8; --line:#334155;
+      --primary:#2563eb; --primary-hover:#1d4ed8;
+      --success:#16a34a; --warning:#f59e0b; --danger:#dc2626; --info:#0891b2;
+      --shadow:0 10px 30px rgba(0,0,0,.18); --radius:18px;
+    }
+
+    * { box-sizing:border-box; margin:0; padding:0; font-family:Arial, Helvetica, sans-serif; }
+    html { scroll-behavior:smooth; }
+    body { background:linear-gradient(135deg, #0f172a, #1e293b); color:var(--text); min-height:100vh; }
+
+    .container { width:min(1500px,96%); margin:24px auto; display:grid; grid-template-columns:420px 1fr; gap:20px; }
+    .panel { background:rgba(17,24,39,.95); border:1px solid rgba(148,163,184,.15); border-radius:var(--radius); box-shadow:var(--shadow); backdrop-filter:blur(8px); }
+    .sidebar { padding:22px; position:sticky; top:20px; height:fit-content; }
+    .main { padding:22px; }
+
+    .header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+    .title h1 { font-size:1.7rem; margin-bottom:6px; }
+    .title p { color:var(--muted); font-size:.95rem; }
+
+    .badge {
+      background:rgba(37,99,235,.16); color:#93c5fd; border:1px solid rgba(147,197,253,.2);
+      padding:10px 14px; border-radius:999px; font-size:.88rem; font-weight:bold;
+    }
+
+    .mobile-topbar {
+      display:none; position:sticky; top:0; z-index:20; background:rgba(15,23,42,.96);
+      backdrop-filter:blur(10px); border-bottom:1px solid rgba(148,163,184,.15);
+      padding:10px 14px; margin:-22px -22px 16px -22px;
+    }
+    .mobile-topbar-inner { display:flex; gap:10px; }
+    .mobile-topbar button { flex:1; }
+
+    .form-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+    .field { display:flex; flex-direction:column; gap:7px; margin-bottom:14px; }
+    .field.full { grid-column:1 / -1; }
+
+    label { font-size:.9rem; color:#cbd5e1; font-weight:bold; }
+    input, select, textarea {
+      background:#0b1220; color:#f8fafc; border:1px solid var(--line); border-radius:12px;
+      padding:12px 14px; outline:none; transition:.2s ease; font-size:16px;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color:#60a5fa; box-shadow:0 0 0 3px rgba(96,165,250,.15);
+    }
+    textarea { min-height:90px; resize:vertical; }
+
+    .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
+    button { border:0; border-radius:12px; padding:12px 16px; cursor:pointer; font-weight:bold; transition:.2s ease; }
+    .btn-primary { background:var(--primary); color:#fff; }
+    .btn-primary:hover { background:var(--primary-hover); }
+    .btn-secondary { background:#334155; color:#fff; }
+    .btn-secondary:hover { background:#475569; }
+    .btn-danger { background:rgba(220,38,38,.18); color:#fecaca; }
+    .btn-danger:hover { background:rgba(220,38,38,.28); }
+
+    .stats { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:20px; }
+    .stat { background:#0b1220; border:1px solid rgba(148,163,184,.16); border-radius:16px; padding:16px; }
+    .stat small { color:var(--muted); display:block; margin-bottom:8px; }
+    .stat strong { font-size:1.4rem; }
+
+    .toolbar { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:12px; margin-bottom:18px; }
+
+    .quick-filters { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+    .filter-chip {
+      padding:10px 12px; border-radius:999px; background:rgba(51,65,85,.85);
+      color:#e2e8f0; border:1px solid rgba(148,163,184,.18); font-size:.84rem;
+    }
+    .filter-chip.active {
+      background:rgba(37,99,235,.18); color:#bfdbfe; border-color:rgba(96,165,250,.4);
+    }
+
+    .list-wrap { overflow-x:auto; border:1px solid rgba(148,163,184,.14); border-radius:16px; }
+    table { width:100%; border-collapse:collapse; min-width:1180px; background:rgba(15,23,42,.65); }
+    thead { background:rgba(30,41,59,.95); }
+    th, td {
+      padding:14px 12px; border-bottom:1px solid rgba(148,163,184,.12);
+      text-align:left; vertical-align:top; font-size:.92rem;
+    }
+    th { color:#cbd5e1; font-size:.85rem; text-transform:uppercase; letter-spacing:.03em; }
+
+    .mobile-cards { display:none; gap:14px; flex-direction:column; }
+    .task-card {
+      background:rgba(11,18,32,.92); border:1px solid rgba(148,163,184,.15);
+      border-radius:18px; padding:14px;
+    }
+    .task-card-header { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; margin-bottom:10px; }
+    .task-card-title { font-size:1rem; font-weight:bold; color:#f8fafc; line-height:1.35; }
+
+    .task-meta { display:grid; grid-template-columns:1fr 1fr; gap:8px 12px; margin-top:12px; }
+    .task-meta div { background:rgba(30,41,59,.75); border-radius:12px; padding:10px; }
+    .task-meta small { display:block; color:var(--muted); margin-bottom:4px; font-size:.75rem; }
+
+    .task-observation {
+      margin-top:12px; padding:12px; background:rgba(30,41,59,.75);
+      border-radius:12px; color:#e2e8f0; line-height:1.45;
+    }
+
+    .chip { display:inline-flex; align-items:center; border-radius:999px; padding:6px 10px; font-size:.78rem; font-weight:bold; white-space:nowrap; }
+    .tipo-inc { background:rgba(220,38,38,.15); color:#fca5a5; }
+    .tipo-tas { background:rgba(8,145,178,.15); color:#7dd3fc; }
+    .tipo-outro { background:rgba(100,116,139,.2); color:#cbd5e1; }
+
+    .status-pendente { background:rgba(245,158,11,.15); color:#fcd34d; }
+    .status-andamento { background:rgba(59,130,246,.15); color:#93c5fd; }
+    .status-concluida { background:rgba(22,163,74,.15); color:#86efac; }
+    .status-atrasada { background:rgba(220,38,38,.15); color:#fca5a5; }
+
+    .priority-high { color:#fca5a5; font-weight:bold; }
+    .priority-medium { color:#fde68a; font-weight:bold; }
+    .priority-low { color:#86efac; font-weight:bold; }
+
+    .row-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .mini-btn { padding:8px 10px; border-radius:10px; font-size:.78rem; }
+    .mini-edit { background:rgba(59,130,246,.18); color:#bfdbfe; }
+    .mini-delete { background:rgba(220,38,38,.18); color:#fecaca; }
+    .mini-start { background:rgba(59,130,246,.18); color:#bfdbfe; }
+    .mini-finish { background:rgba(22,163,74,.18); color:#bbf7d0; }
+    .mini-reopen { background:rgba(245,158,11,.18); color:#fde68a; }
+
+    .empty { text-align:center; color:var(--muted); padding:28px; }
+    .footer-note { margin-top:18px; color:var(--muted); font-size:.88rem; }
+
+    .fab {
+      display:none; position:fixed; right:18px; bottom:18px; z-index:30;
+      width:58px; height:58px; border-radius:50%; font-size:1.6rem;
+      background:var(--primary); color:#fff; box-shadow:0 10px 25px rgba(37,99,235,.35);
+    }
+
+    @media (max-width:1180px) {
+      .container { grid-template-columns:1fr; }
+      .main { order:-1; }
+      .sidebar { position:static; }
+      .stats { grid-template-columns:repeat(2,1fr); }
+      .toolbar { grid-template-columns:1fr 1fr; }
+    }
+
+    @media (max-width:900px) { .form-grid { grid-template-columns:1fr 1fr; } }
+    @media (max-width:980px) { .critical-panels { grid-template-columns:1fr !important; } }
+
+    @media (max-width:720px) {
+      .container { width:min(100%,100%); margin:0; padding:12px; gap:14px; }
+      .panel { border-radius:20px; }
+      .main, .sidebar { padding:16px; }
+      .mobile-topbar { display:block; }
+      .form-grid, .toolbar, .stats, .task-meta { grid-template-columns:1fr; }
+      .header { flex-direction:column; align-items:flex-start; }
+      .title h1 { font-size:1.35rem; }
+      .title p { font-size:.88rem; }
+      .quick-filters { overflow-x:auto; flex-wrap:nowrap; padding-bottom:4px; }
+      .filter-chip { white-space:nowrap; }
+      .list-wrap { display:none; }
+      .mobile-cards { display:flex; }
+      .actions { flex-direction:column; }
+      .actions button, .mobile-topbar button { width:100%; }
+      .fab { display:inline-flex; align-items:center; justify-content:center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <aside class="panel sidebar" id="entradaAtividades" style="border-top:4px solid #d4a514;">
+      <div class="mobile-topbar">
+        <div class="mobile-topbar-inner">
+          <button type="button" class="btn-secondary" onclick="scrollToPanel('painelPendencias')">Pendências</button>
+          <button type="button" class="btn-primary" onclick="scrollToPanel('entradaAtividades')">Nova atividade</button>
+        </div>
+      </div>
+
+      <div class="header">
+        <div class="title">
+          <h1>Nova Atividade</h1>
+          <p>Registre incidentes e tarefas com visão operacional.</p>
+        </div>
+      </div>
+
+      <form id="taskForm">
+        <input type="hidden" id="taskId" />
+        <div class="form-grid">
+          <div class="field">
+            <label for="codigoTipo">Tipo</label>
+            <select id="codigoTipo" required>
+              <option value="">Selecione</option>
+              <option value="INC">INC</option>
+              <option value="TAS">TAS</option>
+              <option value="OUTRO">Outro</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="codigo">Código</label>
+            <input type="text" id="codigo" placeholder="Ex.: INC000123456" required />
+          </div>
+
+          <div class="field full">
+            <label for="titulo">Título</label>
+            <input type="text" id="titulo" placeholder="Ex.: Rompimento de backbone" required />
+          </div>
+
+          <div class="field">
+            <label for="responsavel">Responsável</label>
+            <input type="text" id="responsavel" placeholder="Nome do responsável" required />
+          </div>
+
+          <div class="field">
+            <label for="supervisor">Supervisor</label>
+            <input type="text" id="supervisor" placeholder="Nome do supervisor" required />
+          </div>
+
+          <div class="field">
+            <label for="prazo">Prazo</label>
+            <input type="datetime-local" id="prazo" required />
+          </div>
+
+          <div class="field">
+            <label for="dataRegistro">Data</label>
+            <input type="date" id="dataRegistro" required />
+          </div>
+
+          <div class="field">
+            <label for="status">Status</label>
+            <select id="status" required>
+              <option value="Pendente">Pendente</option>
+              <option value="Em Andamento">Em Andamento</option>
+              <option value="Concluída">Concluída</option>
+              <option value="Atrasada">Atrasada</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="prioridade">Prioridade</label>
+            <select id="prioridade" required>
+              <option value="Alta">Alta</option>
+              <option value="Média">Média</option>
+              <option value="Baixa">Baixa</option>
+            </select>
+          </div>
+
+          <div class="field full">
+            <label for="observacao">Observações</label>
+            <textarea id="observacao" placeholder="Detalhes operacionais..."></textarea>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn-primary" id="saveBtn">Registrar Atividade</button>
+          <button type="button" class="btn-secondary" id="clearBtn">Limpar campos</button>
+        </div>
+      </form>
+
+      <p class="footer-note">Os dados ficam salvos localmente no navegador.</p>
+    </aside>
+
+    <main class="panel main" id="painelPendencias" style="border-top:4px solid #991b1b;">
+      <div class="header">
+        <div class="title">
+          <h1>Controle Operacional de Campo</h1>
+          <p>Monitore incidentes, pendências e atividades.</p>
+        </div>
+        <div class="badge" id="todayLabel"></div>
+      </div>
+
+      <section class="stats" style="margin-top:8px;">
+        <div class="stat"><small>Total</small><strong id="statTotal">0</strong></div>
+        <div class="stat"><small>Pendentes</small><strong id="statPendentes">0</strong></div>
+        <div class="stat"><small>Em andamento</small><strong id="statAndamento">0</strong></div>
+        <div class="stat"><small>Atrasadas</small><strong id="statAtrasadas">0</strong></div>
+        <div class="stat"><small>Concluídas</small><strong id="statConcluidas">0</strong></div>
+      </section>
+
+      <section style="display:grid; grid-template-columns:1.15fr 1fr; gap:14px; margin-bottom:18px;" class="critical-panels">
+        <div style="background:linear-gradient(135deg, rgba(127,29,29,.95), rgba(153,27,27,.92)); border:1px solid rgba(252,165,165,.16); border-radius:18px; padding:16px; min-height:130px;">
+          <div style="font-size:1rem; font-weight:bold; margin-bottom:8px; color:#fff;">Pendências Críticas</div>
+          <div style="color:#fecaca; font-size:.9rem; margin-bottom:10px;">Itens atrasados ou de alta prioridade.</div>
+          <div id="criticalSummary" style="display:grid; gap:8px; color:#fff;"></div>
+        </div>
+
+        <div style="background:linear-gradient(135deg, rgba(30,41,59,.95), rgba(17,24,39,.95)); border:1px solid rgba(147,197,253,.12); border-radius:18px; padding:16px; min-height:130px;">
+          <div style="font-size:1rem; font-weight:bold; margin-bottom:8px; color:#fff;">Resumo da Operação</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;">
+            <div style="background:rgba(15,23,42,.55); border-radius:14px; padding:12px;">
+              <small style="display:block; color:#94a3b8; margin-bottom:6px;">INC</small>
+              <strong id="summaryInc" style="font-size:1.3rem;">0</strong>
+            </div>
+            <div style="background:rgba(15,23,42,.55); border-radius:14px; padding:12px;">
+              <small style="display:block; color:#94a3b8; margin-bottom:6px;">TAS</small>
+              <strong id="summaryTas" style="font-size:1.3rem;">0</strong>
+            </div>
+            <div style="background:rgba(15,23,42,.55); border-radius:14px; padding:12px;">
+              <small style="display:block; color:#94a3b8; margin-bottom:6px;">Alta prioridade</small>
+              <strong id="summaryHigh" style="font-size:1.3rem;">0</strong>
+            </div>
+            <div style="background:rgba(15,23,42,.55); border-radius:14px; padding:12px;">
+              <small style="display:block; color:#94a3b8; margin-bottom:6px;">Supervisores</small>
+              <strong id="summarySup" style="font-size:1.3rem;">0</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="quick-filters" id="quickFilters">
+        <button class="filter-chip active" data-quick="">Todas</button>
+        <button class="filter-chip" data-quick="criticas">Críticas</button>
+        <button class="filter-chip" data-quick="atrasadas">Atrasadas</button>
+        <button class="filter-chip" data-quick="hoje">Prazo hoje</button>
+        <button class="filter-chip" data-quick="inc">Somente INC</button>
+        <button class="filter-chip" data-quick="tas">Somente TAS</button>
+        <button class="filter-chip" data-action="toggle-completed" id="toggleCompletedBtn">Ocultar concluídas</button>
+      </section>
+
+      <section class="toolbar">
+        <input type="text" id="searchInput" placeholder="Pesquisar por código, título, responsável ou supervisor" />
+        <select id="filterTipo">
+          <option value="">Todos os tipos</option>
+          <option value="INC">INC</option>
+          <option value="TAS">TAS</option>
+          <option value="OUTRO">Outro</option>
+        </select>
+        <select id="filterStatus">
+          <option value="">Todos os status</option>
+          <option value="Pendente">Pendente</option>
+          <option value="Em Andamento">Em Andamento</option>
+          <option value="Concluída">Concluída</option>
+          <option value="Atrasada">Atrasada</option>
+        </select>
+        <select id="sortBy">
+          <option value="recentes">Mais recentes</option>
+          <option value="prazo">Prazo</option>
+          <option value="responsavel">Responsável</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="prioridade">Prioridade</option>
+        </select>
+      </section>
+
+      <div class="list-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Tipo</th><th>Código</th><th>Título</th><th>Responsável</th><th>Supervisor</th>
+              <th>Prazo</th><th>Data</th><th>Status</th><th>Prioridade</th><th>Observação</th><th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="taskTableBody">
+            <tr><td colspan="11" class="empty">Nenhuma atividade cadastrada até o momento.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mobile-cards" id="mobileCards"></div>
+    </main>
+  </div>
+
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzjeEgPGf14zjXp7b7ng6OskTDpwi6R3rQ59Sqd-LN8S6F6NJAVN4U45ggeI3LFTxrE/exec';
+    const STORAGE_KEY = 'gestao_atividades_campo_v1';
+
+    const form = document.getElementById('taskForm');
+    const taskIdInput = document.getElementById('taskId');
+    const codigoTipoInput = document.getElementById('codigoTipo');
+    const codigoInput = document.getElementById('codigo');
+    const tituloInput = document.getElementById('titulo');
+    const responsavelInput = document.getElementById('responsavel');
+    const supervisorInput = document.getElementById('supervisor');
+    const prazoInput = document.getElementById('prazo');
+    const dataRegistroInput = document.getElementById('dataRegistro');
+    const statusInput = document.getElementById('status');
+    const prioridadeInput = document.getElementById('prioridade');
+    const observacaoInput = document.getElementById('observacao');
+    const clearBtn = document.getElementById('clearBtn');
+    const tableBody = document.getElementById('taskTableBody');
+    const searchInput = document.getElementById('searchInput');
+    const filterTipo = document.getElementById('filterTipo');
+    const filterStatus = document.getElementById('filterStatus');
+    const sortBy = document.getElementById('sortBy');
+    const todayLabel = document.getElementById('todayLabel');
+    const mobileCards = document.getElementById('mobileCards');
+    const quickFilters = document.getElementById('quickFilters');
+    const criticalSummary = document.getElementById('criticalSummary');
+    const summaryInc = document.getElementById('summaryInc');
+    const summaryTas = document.getElementById('summaryTas');
+    const summaryHigh = document.getElementById('summaryHigh');
+    const summarySup = document.getElementById('summarySup');
+
+    const statTotal = document.getElementById('statTotal');
+    const statPendentes = document.getElementById('statPendentes');
+    const statAndamento = document.getElementById('statAndamento');
+    const statAtrasadas = document.getElementById('statAtrasadas');
+    const statConcluidas = document.getElementById('statConcluidas');
+
+    let tasks = [];
+    let activeQuickFilter = '';
+    let hideCompleted = true;
+
+    const formatDate = d => d ? (isNaN(new Date(d)) ? d : new Date(d).toLocaleDateString('pt-BR')) : '-';
+    const formatDateTime = d => d ? (isNaN(new Date(d)) ? d : new Date(d).toLocaleString('pt-BR')) : '-';
+
+    const getTipoClass = tipo => ({ INC:'tipo-inc', TAS:'tipo-tas' }[tipo] || 'tipo-outro');
+    const getStatusClass = status => ({
+      'Pendente':'status-pendente',
+      'Em Andamento':'status-andamento',
+      'Concluída':'status-concluida',
+      'Atrasada':'status-atrasada'
+    }[status] || 'status-pendente');
+
+    const getPriorityClass = p => p === 'Alta' ? 'priority-high' : p === 'Média' ? 'priority-medium' : 'priority-low';
+
+    async function enviarParaSheets(taskData, action = 'upsert') {
+      try {
+        const payload = {
+          action,
+          id: taskData.id,
+          tipo: taskData.codigoTipo,
+          codigo: taskData.codigo,
+          titulo: taskData.titulo,
+          responsavel: taskData.responsavel,
+          supervisor: taskData.supervisor,
+          prazo: taskData.prazo,
+          data: taskData.dataRegistro,
+          status: taskData.status,
+          prioridade: taskData.prioridade,
+          observacao: taskData.observacao,
+          finalizado: taskData.status === 'Concluída' ? 'SIM' : 'NÃO',
+          dataFinalizacao: taskData.status === 'Concluída' ? new Date().toISOString() : '',
+          dataRegistroSistema: taskData.createdAt,
+          ultimaAtualizacao: new Date().toISOString()
+        };
+
+        await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type':'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+      } catch (error) {
+        console.error('Erro ao enviar para Google Sheets:', error);
+      }
+    }
+
+    function saveTasks() { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
+    function loadTasks() { tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+
+    function resetForm() {
+      form.reset();
+      taskIdInput.value = '';
+      dataRegistroInput.value = new Date().toISOString().split('T')[0];
+      document.getElementById('saveBtn').textContent = 'Salvar atividade';
+    }
+
+    function updateStats(filteredTasks = tasks) {
+      const visible = hideCompleted ? filteredTasks.filter(t => t.status !== 'Concluída') : filteredTasks;
+      statTotal.textContent = visible.length;
+      statPendentes.textContent = visible.filter(t => t.status === 'Pendente').length;
+      statAndamento.textContent = visible.filter(t => t.status === 'Em Andamento').length;
+      statAtrasadas.textContent = visible.filter(t => t.status === 'Atrasada').length;
+      statConcluidas.textContent = tasks.filter(t => t.status === 'Concluída').length;
+
+      summaryInc.textContent = tasks.filter(t => t.codigoTipo === 'INC').length;
+      summaryTas.textContent = tasks.filter(t => t.codigoTipo === 'TAS').length;
+      summaryHigh.textContent = tasks.filter(t => t.prioridade === 'Alta').length;
+      summarySup.textContent = new Set(tasks.map(t => (t.supervisor || '').trim()).filter(Boolean)).size;
+
+      const critical = [...tasks]
+        .filter(t => (t.status === 'Atrasada' || t.prioridade === 'Alta') && (!hideCompleted || t.status !== 'Concluída'))
+        .sort((a, b) => new Date(a.prazo) - new Date(b.prazo))
+        .slice(0, 3);
+
+      criticalSummary.innerHTML = critical.length
+        ? critical.map(t => `
+          <div style="background:rgba(255,255,255,.06); border-radius:12px; padding:10px 12px;">
+            <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:4px; flex-wrap:wrap;">
+              <strong>${t.codigo}</strong>
+              <span class="chip ${getStatusClass(t.status)}">${t.status}</span>
+            </div>
+            <div style="font-size:.9rem; color:#fff; line-height:1.35;">${t.titulo}</div>
+            <div style="font-size:.8rem; color:#fecaca; margin-top:4px;">Prazo: ${formatDateTime(t.prazo)}</div>
+          </div>
+        `).join('')
+        : '<div style="color:#fecaca; font-size:.9rem;">Nenhuma pendência crítica no momento.</div>';
+    }
+
+    function isToday(dateStr) {
+      if (!dateStr) return false;
+      const d = new Date(dateStr), n = new Date();
+      return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+    }
+
+    function getFilteredTasks() {
+      let filtered = [...tasks];
+      if (hideCompleted) filtered = filtered.filter(t => t.status !== 'Concluída');
+
+      const search = searchInput.value.trim().toLowerCase();
+      const tipo = filterTipo.value;
+      const status = filterStatus.value;
+      const order = sortBy.value;
+
+      if (search) {
+        filtered = filtered.filter(t =>
+          [t.codigo, t.titulo, t.responsavel, t.supervisor, t.observacao].join(' ').toLowerCase().includes(search)
+        );
+      }
+
+      if (tipo) filtered = filtered.filter(t => t.codigoTipo === tipo);
+      if (status) filtered = filtered.filter(t => t.status === status);
+      if (activeQuickFilter === 'criticas') filtered = filtered.filter(t => t.prioridade === 'Alta' || t.status === 'Atrasada');
+      if (activeQuickFilter === 'atrasadas') filtered = filtered.filter(t => t.status === 'Atrasada');
+      if (activeQuickFilter === 'hoje') filtered = filtered.filter(t => isToday(t.prazo));
+      if (activeQuickFilter === 'inc') filtered = filtered.filter(t => t.codigoTipo === 'INC');
+      if (activeQuickFilter === 'tas') filtered = filtered.filter(t => t.codigoTipo === 'TAS');
+
+      filtered.sort((a, b) => {
+        if (order === 'prazo') return new Date(a.prazo) - new Date(b.prazo);
+        if (order === 'responsavel') return a.responsavel.localeCompare(b.responsavel, 'pt-BR');
+        if (order === 'supervisor') return a.supervisor.localeCompare(b.supervisor, 'pt-BR');
+        if (order === 'prioridade') return ({ Alta:0, Média:1, Baixa:2 }[a.prioridade] - { Alta:0, Média:1, Baixa:2 }[b.prioridade]);
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+
+      return filtered;
+    }
+
+    function getActionButtons(task) {
+      const buttons = [`<button class="mini-btn mini-edit" onclick="editTask('${task.id}')">Editar</button>`];
+
+      if (task.status === 'Pendente') {
+        buttons.push(`<button class="mini-btn mini-start" onclick="setTaskStatus('${task.id}','Em Andamento')">Iniciar</button>`);
+        buttons.push(`<button class="mini-btn mini-finish" onclick="setTaskStatus('${task.id}','Concluída')">Finalizar</button>`);
+      } else if (task.status === 'Em Andamento' || task.status === 'Atrasada') {
+        buttons.push(`<button class="mini-btn mini-finish" onclick="setTaskStatus('${task.id}','Concluída')">Finalizar</button>`);
+        buttons.push(`<button class="mini-btn mini-reopen" onclick="setTaskStatus('${task.id}','Pendente')">Reabrir</button>`);
+      } else if (task.status === 'Concluída') {
+        buttons.push(`<button class="mini-btn mini-reopen" onclick="setTaskStatus('${task.id}','Pendente')">Reabrir</button>`);
+      }
+
+      buttons.push(`<button class="mini-btn mini-delete" onclick="deleteTask('${task.id}')">Excluir</button>`);
+      return buttons.join('');
+    }
+
+    function renderTasks() {
+      const filtered = getFilteredTasks();
+      updateStats(filtered);
+
+      if (!filtered.length) {
+        tableBody.innerHTML = '<tr><td colspan="11" class="empty">Nenhuma atividade encontrada.</td></tr>';
+        mobileCards.innerHTML = '<div class="empty">Nenhuma atividade encontrada.</div>';
+        return;
+      }
+
+      tableBody.innerHTML = filtered.map(task => `
+        <tr>
+          <td><span class="chip ${getTipoClass(task.codigoTipo)}">${task.codigoTipo}</span></td>
+          <td>${task.codigo}</td>
+          <td>${task.titulo}</td>
+          <td>${task.responsavel}</td>
+          <td>${task.supervisor}</td>
+          <td>${formatDateTime(task.prazo)}</td>
+          <td>${formatDate(task.dataRegistro)}</td>
+          <td><span class="chip ${getStatusClass(task.status)}">${task.status}</span></td>
+          <td><span class="${getPriorityClass(task.prioridade)}">${task.prioridade}</span></td>
+          <td>${task.observacao || '-'}</td>
+          <td><div class="row-actions">${getActionButtons(task)}</div></td>
+        </tr>
+      `).join('');
+
+      mobileCards.innerHTML = filtered.map(task => `
+        <div class="task-card">
+          <div class="task-card-header">
+            <div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                <span class="chip ${getTipoClass(task.codigoTipo)}">${task.codigoTipo}</span>
+                <span class="chip ${getStatusClass(task.status)}">${task.status}</span>
+              </div>
+              <div class="task-card-title">${task.titulo}</div>
+              <div style="margin-top:6px; color:#93c5fd; font-weight:bold;">${task.codigo}</div>
+            </div>
+          </div>
+
+          <div class="task-meta">
+            <div><small>Responsável</small>${task.responsavel}</div>
+            <div><small>Supervisor</small>${task.supervisor}</div>
+            <div><small>Prazo</small>${formatDateTime(task.prazo)}</div>
+            <div><small>Data</small>${formatDate(task.dataRegistro)}</div>
+            <div><small>Prioridade</small><span class="${getPriorityClass(task.prioridade)}">${task.prioridade}</span></div>
+            <div><small>Ações</small><div class="row-actions" style="margin-top:6px;">${getActionButtons(task)}</div></div>
+          </div>
+
+          <div class="task-observation">
+            <strong style="display:block; margin-bottom:6px;">Observação</strong>
+            ${task.observacao || 'Sem observações registradas.'}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+
+      const taskData = {
+        id: taskIdInput.value || crypto.randomUUID(),
+        codigoTipo: codigoTipoInput.value,
+        codigo: codigoInput.value.trim(),
+        titulo: tituloInput.value.trim(),
+        responsavel: responsavelInput.value.trim(),
+        supervisor: supervisorInput.value.trim(),
+        prazo: prazoInput.value,
+        dataRegistro: dataRegistroInput.value,
+        status: statusInput.value,
+        prioridade: prioridadeInput.value,
+        observacao: observacaoInput.value.trim(),
+        createdAt: taskIdInput.value
+          ? (tasks.find(t => t.id === taskIdInput.value)?.createdAt || new Date().toISOString())
+          : new Date().toISOString()
+      };
+
+      tasks = taskIdInput.value
+        ? tasks.map(t => t.id === taskData.id ? taskData : t)
+        : [...tasks, taskData];
+
+      saveTasks();
+      await enviarParaSheets(taskData);
+      renderTasks();
+      resetForm();
+    });
+
+    clearBtn.addEventListener('click', resetForm);
+
+    quickFilters.addEventListener('click', e => {
+      const actionButton = e.target.closest('[data-action="toggle-completed"]');
+      if (actionButton) {
+        hideCompleted = !hideCompleted;
+        actionButton.textContent = hideCompleted ? 'Ocultar concluídas' : 'Mostrar concluídas';
+        actionButton.classList.toggle('active', !hideCompleted);
+        renderTasks();
+        return;
+      }
+
+      const button = e.target.closest('[data-quick]');
+      if (!button) return;
+      activeQuickFilter = button.dataset.quick;
+      document.querySelectorAll('.filter-chip[data-quick]').forEach(chip => chip.classList.remove('active'));
+      button.classList.add('active');
+      renderTasks();
+    });
+
+    searchInput.addEventListener('input', renderTasks);
+    filterTipo.addEventListener('change', renderTasks);
+    filterStatus.addEventListener('change', renderTasks);
+    sortBy.addEventListener('change', renderTasks);
+
+    window.editTask = function(id) {
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+
+      taskIdInput.value = task.id;
+      codigoTipoInput.value = task.codigoTipo;
+      codigoInput.value = task.codigo;
+      tituloInput.value = task.titulo;
+      responsavelInput.value = task.responsavel;
+      supervisorInput.value = task.supervisor;
+      prazoInput.value = task.prazo;
+      dataRegistroInput.value = task.dataRegistro;
+      statusInput.value = task.status;
+      prioridadeInput.value = task.prioridade;
+      observacaoInput.value = task.observacao;
+      document.getElementById('saveBtn').textContent = 'Atualizar atividade';
+      window.scrollTo({ top:0, behavior:'smooth' });
+    }
+
+    window.deleteTask = async function(id) {
+      if (!confirm('Deseja realmente excluir esta atividade?')) return;
+      const deletedTask = tasks.find(t => t.id === id);
+      tasks = tasks.filter(t => t.id !== id);
+      saveTasks();
+      renderTasks();
+      if (taskIdInput.value === id) resetForm();
+      if (deletedTask) await enviarParaSheets(deletedTask, 'delete');
+    }
+
+    window.setTaskStatus = async function(id, newStatus) {
+      let updatedTask = null;
+      tasks = tasks.map(task => {
+        if (task.id !== id) return task;
+        updatedTask = { ...task, status:newStatus };
+        return updatedTask;
+      });
+
+      saveTasks();
+      renderTasks();
+      if (updatedTask) await enviarParaSheets(updatedTask, 'upsert');
+      if (hideCompleted && newStatus === 'Concluída') resetForm();
+    }
+
+    window.scrollToPanel = function(id) {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+    }
+
+    function setTodayLabel() {
+      todayLabel.textContent = new Date().toLocaleDateString('pt-BR', {
+        weekday:'long', day:'2-digit', month:'2-digit', year:'numeric'
+      });
+    }
+
+    function markDelayedTasks() {
+      const now = new Date();
+      tasks = tasks.map(task =>
+        ((task.status === 'Pendente' || task.status === 'Em Andamento') && new Date(task.prazo) < now)
+          ? { ...task, status:'Atrasada' }
+          : task
+      );
+      saveTasks();
+    }
+
+    loadTasks();
+    setTodayLabel();
+    markDelayedTasks();
+    resetForm();
+    renderTasks();
+  </script>
+
+  <button class="fab" title="Nova atividade" onclick="scrollToPanel('entradaAtividades')">+</button>
+</body>
+</html>
